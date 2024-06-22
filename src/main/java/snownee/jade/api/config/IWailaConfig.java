@@ -185,7 +185,7 @@ public interface IWailaConfig {
 	}
 
 	enum DisplayMode implements SimpleStringRepresentable {
-		HOLD_KEY, TOGGLE, LITE
+		HOLD_KEY, TOGGLE, LITE, SPYGLASS
 	}
 
 	enum FluidMode implements SimpleStringRepresentable {

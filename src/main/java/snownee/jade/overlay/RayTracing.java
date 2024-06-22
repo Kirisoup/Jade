@@ -106,7 +106,10 @@ public class RayTracing {
 		}
 
 		float reach = mc.gameMode.getPickRange() + Jade.CONFIG.get().getGeneral().getReachDistance();
-		target = rayTrace(viewpoint, reach, mc.getFrameTime());
+		if (Jade.CONFIG.get().getGeneral().getDisplayMode() == IWailaConfig.DisplayMode.SPYGLASS)
+			reach *= 3;
+
+			target = rayTrace(viewpoint, reach, mc.getFrameTime());
 	}
 
 	public HitResult getTarget() {

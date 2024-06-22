@@ -53,12 +53,24 @@ public class OverlayRenderer {
 		if (general.getDisplayMode() == IWailaConfig.DisplayMode.HOLD_KEY && !JadeClient.showOverlay.isDown())
 			return false;
 
+		if (general.getDisplayMode() == IWailaConfig.DisplayMode.SPYGLASS && !isUsingSpyglass())
+		return false;
+
+
 		BossBarOverlapMode mode = Jade.CONFIG.get().getGeneral().getBossBarOverlapMode();
 		if (mode == BossBarOverlapMode.HIDE_TOOLTIP && ClientProxy.getBossBarRect() != null) {
 			return false;
 		}
 
 		return true;
+	}
+
+	private static boolean isUsingSpyglass() {
+		Minecraft client = Minecraft.getInstance();
+		if (client.player == null)
+			return false;
+		ItemStack activeItem = client.player.getUseItem();
+		return activeItem.getItem() == Items.SPYGLASS && client.player.isUsingItem();
 	}
 
 	public static boolean shouldShowImmediately(TooltipRenderer tooltipRenderer) {

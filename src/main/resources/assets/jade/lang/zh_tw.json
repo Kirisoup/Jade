@@ -48,6 +48,8 @@
   "config.jade.display_mode_lite": "精簡",
   "config.jade.display_mode_lite_desc": "按住「顯示詳細資料」以顯示更多資訊",
   "config.jade.display_mode_lite_desc.fabric": "按住 Shift 以顯示更多資訊",
+  "congig.jade.display_mode_spyglass": "望遠鏡",
+  "congig.jade.display_mode_spyglass_desc": "使用望遠鏡時顯示提示框。",
   "config.jade.hide_from_debug": "於除錯選單隱藏",
   "config.jade.hide_from_debug_desc": "開啟除錯選單時隱藏物品提示",
   "config.jade.hide_from_tab_list": "於玩家列表隱藏",

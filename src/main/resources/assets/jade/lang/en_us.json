@@ -68,6 +68,8 @@
   "config.jade.display_mode_lite": "Lite",
   "config.jade.display_mode_lite_desc": "Hold [Show Details] key to show further information.",
   "config.jade.display_mode_lite_desc.fabric": "Hold Shift to show further information.",
+  "congig.jade.display_mode_spyglass": "Spyglass",
+  "congig.jade.display_mode_spyglass_desc": "Display tooltip when using spyglass.",
   "config.jade.hide_from_debug": "Hide from Debug Screen",
   "config.jade.hide_from_debug_desc": "Hide the tooltip while the debug screen is displayed.",
   "config.jade.hide_from_tab_list": "Hide from Player List",
