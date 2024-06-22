@@ -16,6 +16,8 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import snownee.jade.Jade;
 import snownee.jade.JadeClient;
 import snownee.jade.api.callback.JadeBeforeRenderCallback;

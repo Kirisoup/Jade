@@ -27,6 +27,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import snownee.jade.Jade;
 import snownee.jade.api.Accessor;
 import snownee.jade.api.ui.IElement;
+import snownee.jade.api.config.IWailaConfig;
 import snownee.jade.impl.ObjectDataCenter;
 import snownee.jade.impl.WailaClientRegistration;
 import snownee.jade.impl.ui.ItemStackElement;
