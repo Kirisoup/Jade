@@ -34,15 +34,11 @@ public class EntityAccessorImpl extends AccessorImpl<EntityHitResult> implements
 		entity = builder.entity;
 	}
 
-	public static void handleRequest(FriendlyByteBuf buf, ServerPlayer player, Consumer<Runnable> executor, Consumer<CompoundTag> responseSender) {
-		EntityAccessor accessor;
-		try {
-			accessor = fromNetwork(buf, player);
-		} catch (Exception e) {
-			WailaExceptionHandler.handleErr(e, null, null);
-			return;
-		}
+	public static void handleRequest(SyncData data, ServerPlayer player, Consumer<Runnable> executor, Consumer<CompoundTag> responseSender) {
 		executor.accept(() -> {
+			EntityAccessor accessor = data.unpack(player);
+			if (accessor == null)
+				return;
 			Entity entity = accessor.getEntity();
 			if (entity == null || player.distanceToSqr(entity) > Jade.MAX_DISTANCE_SQR)
 				return;
@@ -64,26 +60,17 @@ public class EntityAccessorImpl extends AccessorImpl<EntityHitResult> implements
 		});
 	}
 
-	public static EntityAccessor fromNetwork(FriendlyByteBuf buf, ServerPlayer player) {
-		Builder builder = new Builder();
-		builder.level(player.level());
-		builder.player(player);
-		builder.showDetails(buf.readBoolean());
-		int id = buf.readVarInt();
-		float hitX = buf.readFloat();
-		float hitY = buf.readFloat();
-		float hitZ = buf.readFloat();
-		// you can only get block entity from the main thread
-		Supplier<Entity> entity = Suppliers.memoize(() -> builder.level.getEntity(id));
-		builder.entity(entity);
-		builder.hit(Suppliers.memoize(() -> new EntityHitResult(entity.get(), new Vec3(hitX, hitY, hitZ))));
-		return builder.build();
-	}
-
 	@Override
+	@Deprecated
 	public void toNetwork(FriendlyByteBuf buf) {
 		buf.writeBoolean(showDetails());
-		buf.writeVarInt(entity.get().getId());
+		Entity entity = getEntity();
+		buf.writeVarInt(entity.getId());
+		if (CommonProxy.isMultipartEntity(entity)) {
+			buf.writeVarInt(CommonProxy.getPartEntityIndex(entity));
+		} else {
+			buf.writeVarInt(-1);
+		}
 		Vec3 hitVec = getHitResult().getLocation();
 		buf.writeFloat((float) hitVec.x);
 		buf.writeFloat((float) hitVec.y);
@@ -92,6 +79,11 @@ public class EntityAccessorImpl extends AccessorImpl<EntityHitResult> implements
 
 	@Override
 	public Entity getEntity() {
+		return CommonProxy.wrapPartEntityParent(getRawEntity());
+	}
+
+	@Override
+	public Entity getRawEntity() {
 		return entity.get();
 	}
 
@@ -193,7 +185,35 @@ public class EntityAccessorImpl extends AccessorImpl<EntityHitResult> implements
 			}
 			return accessor;
 		}
-
 	}
 
+	public record SyncData(boolean showDetails, int id, int partIndex, Vec3 hitVec) {
+		public SyncData(EntityAccessor accessor) {
+			this(accessor.showDetails(), accessor.getEntity().getId(), CommonProxy.getPartEntityIndex(accessor.getRawEntity()), accessor.getHitResult().getLocation());
+		}
+
+		public SyncData(FriendlyByteBuf buffer) {
+			this(buffer.readBoolean(), buffer.readVarInt(), buffer.readVarInt(), new Vec3(buffer.readFloat(), buffer.readFloat(), buffer.readFloat()));
+		}
+
+		public void write(FriendlyByteBuf buffer) {
+			buffer.writeBoolean(showDetails);
+			buffer.writeVarInt(id);
+			buffer.writeVarInt(partIndex);
+			buffer.writeFloat((float) hitVec.x);
+			buffer.writeFloat((float) hitVec.y);
+			buffer.writeFloat((float) hitVec.z);
+		}
+
+		public EntityAccessor unpack(ServerPlayer player) {
+			Supplier<Entity> entity = Suppliers.memoize(() -> CommonProxy.getPartEntity(player.level().getEntity(id), partIndex));
+			return new EntityAccessorImpl.Builder()
+					.level(player.level())
+					.player(player)
+					.showDetails(showDetails)
+					.entity(entity)
+					.hit(Suppliers.memoize(() -> new EntityHitResult(entity.get(), hitVec)))
+					.build();
+		}
+	}
 }

@@ -66,6 +66,7 @@ import snownee.jade.api.IWailaPlugin;
 import snownee.jade.api.Identifiers;
 import snownee.jade.api.WailaPlugin;
 import snownee.jade.overlay.DatapackBlockManager;
+import snownee.jade.util.ClientProxy;
 import snownee.jade.util.CommonProxy;
 
 @WailaPlugin
@@ -139,12 +140,11 @@ public class VanillaPlugin implements IWailaPlugin {
 		registration.addConfig(Identifiers.MC_BREAKING_PROGRESS, true);
 		registration.addConfig(Identifiers.MC_ANIMAL_OWNER_FETCH_NAMES, true);
 
-		registration.addConfig(Identifiers.MC_ENTITY_ARMOR_MAX_FOR_RENDER, 40, 0, 100, false);
+		registration.addConfig(Identifiers.MC_ENTITY_ARMOR_MAX_FOR_RENDER, 20, 0, 100, false);
 		registration.addConfig(Identifiers.MC_ENTITY_HEALTH_MAX_FOR_RENDER, 40, 0, 100, false);
 		registration.addConfig(Identifiers.MC_ENTITY_HEALTH_ICONS_PER_LINE, 10, 5, 30, false);
 		registration.addConfig(Identifiers.MC_ENTITY_HEALTH_SHOW_FRACTIONS, false);
 
-		registration.registerBlockComponent(BlockStatesProvider.INSTANCE, Block.class);
 		registration.registerBlockComponent(BrewingStandProvider.INSTANCE, BrewingStandBlock.class);
 		registration.registerEntityComponent(HorseStatsProvider.INSTANCE, AbstractHorse.class);
 		registration.registerEntityComponent(ItemFrameProvider.INSTANCE, ItemFrame.class);
@@ -192,6 +192,9 @@ public class VanillaPlugin implements IWailaPlugin {
 
 		registration.registerItemStorageClient(CampfireProvider.INSTANCE);
 
+		ClientProxy.registerReloadListener(HarvestToolProvider.INSTANCE);
+
+		registration.addRayTraceCallback(-1000, JadeClient::limitMobEffectFog);
 		registration.addRayTraceCallback(-10, JadeClient::builtInOverrides);
 		registration.addRayTraceCallback(5000, DatapackBlockManager::override);
 		registration.addAfterRenderCallback(100, JadeClient::drawBreakingProgress);
@@ -205,7 +208,6 @@ public class VanillaPlugin implements IWailaPlugin {
 		registration.markAsClientFeature(Identifiers.MC_ENTITY_HEALTH_MAX_FOR_RENDER);
 		registration.markAsClientFeature(Identifiers.MC_ENTITY_HEALTH_ICONS_PER_LINE);
 		registration.markAsClientFeature(Identifiers.MC_ENTITY_HEALTH_SHOW_FRACTIONS);
-		registration.markAsClientFeature(Identifiers.MC_BLOCK_STATES);
 		registration.markAsClientFeature(Identifiers.MC_HORSE_STATS);
 		registration.markAsClientFeature(Identifiers.MC_ITEM_FRAME);
 		registration.markAsClientFeature(Identifiers.MC_TNT_STABILITY);
@@ -234,7 +236,6 @@ public class VanillaPlugin implements IWailaPlugin {
 		registration.setConfigCategoryOverride(Identifiers.MC_ANIMAL_OWNER, entity);
 		registration.setConfigCategoryOverride(Identifiers.MC_ARMOR_STAND, both);
 		registration.setConfigCategoryOverride(Identifiers.MC_BEEHIVE, block);
-		registration.setConfigCategoryOverride(Identifiers.MC_BLOCK_STATES, block);
 		registration.setConfigCategoryOverride(Identifiers.MC_BREWING_STAND, block);
 		registration.setConfigCategoryOverride(Identifiers.MC_CHICKEN_EGG, entity);
 		registration.setConfigCategoryOverride(Identifiers.MC_CHISELED_BOOKSHELF, block);

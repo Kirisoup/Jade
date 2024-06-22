@@ -25,7 +25,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.event.Event;
-import net.fabricmc.fabric.api.event.client.player.ClientPickBlockGatherCallback;
 import net.fabricmc.fabric.api.mininglevel.v1.FabricMineableTags;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
@@ -44,6 +43,7 @@ import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.language.I18n;
@@ -57,15 +57,14 @@ import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraft.util.LazyLoadedValue;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.phys.HitResult;
 import snownee.jade.Jade;
 import snownee.jade.JadeClient;
 import snownee.jade.addon.harvest.HarvestToolProvider;
@@ -79,6 +78,8 @@ import snownee.jade.api.ui.IElement;
 import snownee.jade.command.JadeClientCommand;
 import snownee.jade.compat.JEICompat;
 import snownee.jade.gui.BaseOptionsScreen;
+import snownee.jade.impl.BlockAccessorImpl;
+import snownee.jade.impl.EntityAccessorImpl;
 import snownee.jade.impl.ObjectDataCenter;
 import snownee.jade.impl.config.PluginConfig;
 import snownee.jade.impl.theme.ThemeHelper;
@@ -168,18 +169,14 @@ public final class ClientProxy implements ClientModInitializer {
 
 	public static void requestBlockData(BlockAccessor accessor) {
 		FriendlyByteBuf buf = PacketByteBufs.create();
-		accessor.toNetwork(buf);
+		new BlockAccessorImpl.SyncData(accessor).write(buf);
 		ClientPlayNetworking.send(Identifiers.PACKET_REQUEST_TILE, buf);
 	}
 
 	public static void requestEntityData(EntityAccessor accessor) {
 		FriendlyByteBuf buf = PacketByteBufs.create();
-		accessor.toNetwork(buf);
+		new EntityAccessorImpl.SyncData(accessor).write(buf);
 		ClientPlayNetworking.send(Identifiers.PACKET_REQUEST_ENTITY, buf);
-	}
-
-	static ItemStack invokePickEvent(Player player, HitResult hitResult) {
-		return ClientPickBlockGatherCallback.EVENT.invoker().pick(player, hitResult);
 	}
 
 	public static IElement elementFromLiquid(LiquidBlock block) {
@@ -245,6 +242,11 @@ public final class ClientProxy implements ClientModInitializer {
 
 	public static InputConstants.Key getBoundKeyOf(KeyMapping keyMapping) {
 		return KeyBindingHelper.getBoundKeyOf(keyMapping);
+	}
+
+	public static GameType getGameMode() {
+		MultiPlayerGameMode gameMode = Minecraft.getInstance().gameMode;
+		return gameMode == null ? GameType.SURVIVAL : gameMode.getPlayerMode();
 	}
 
 	@Override

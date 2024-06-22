@@ -56,6 +56,8 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.boss.EnderDragonPart;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.decoration.Painting;
 import net.minecraft.world.entity.decoration.PaintingVariant;
 import net.minecraft.world.entity.npc.VillagerProfession;
@@ -312,24 +314,14 @@ public final class CommonProxy implements ModInitializer {
 
 	public static ItemStack getBlockPickedResult(BlockState state, Player player, BlockHitResult hitResult) {
 		Block block = state.getBlock();
-		if (isPhysicallyClient()) {
-			ItemStack result = ClientProxy.invokePickEvent(player, hitResult);
-			if (!result.isEmpty()) {
-				return result;
-			}
-		} else if (block instanceof BlockPickInteractionAware) {
+		if (block instanceof BlockPickInteractionAware) {
 			return ((BlockPickInteractionAware) block).getPickedStack(state, player.level(), hitResult.getBlockPos(), player, hitResult);
 		}
 		return block.getCloneItemStack(player.level(), hitResult.getBlockPos(), state);
 	}
 
 	public static ItemStack getEntityPickedResult(Entity entity, Player player, EntityHitResult hitResult) {
-		if (isPhysicallyClient()) {
-			ItemStack result = ClientProxy.invokePickEvent(player, hitResult);
-			if (!result.isEmpty()) {
-				return result;
-			}
-		} else if (entity instanceof EntityPickInteractionAware) {
+		if (entity instanceof EntityPickInteractionAware) {
 			return ((EntityPickInteractionAware) entity).getPickedStack(player, hitResult);
 		}
 		ItemStack stack = entity.getPickResult();
@@ -338,11 +330,13 @@ public final class CommonProxy implements ModInitializer {
 
 	private static void playerJoin(ServerGamePacketListenerImpl handler, PacketSender sender, MinecraftServer server) {
 		ServerPlayer player = handler.player;
-		Jade.LOGGER.info("Syncing config to {} ({})", player.getGameProfile().getName(), player.getGameProfile().getId());
+		String configs = PluginConfig.INSTANCE.getServerConfigs();
+		if (!configs.isEmpty()) {
+			Jade.LOGGER.debug("Syncing config to {} ({})", player.getGameProfile().getName(), player.getGameProfile().getId());
+		}
 		FriendlyByteBuf buf = PacketByteBufs.create();
-		buf.writeUtf(Strings.nullToEmpty(PluginConfig.INSTANCE.getServerConfigs()));
+		buf.writeUtf(configs);
 		ServerPlayNetworking.send(player, Identifiers.PACKET_SERVER_PING, buf);
-
 		if (server.isDedicatedServer() && !(player instanceof FakePlayer)) {
 			UsernameCache.setUsername(player.getUUID(), player.getGameProfile().getName());
 		}
@@ -399,20 +393,58 @@ public final class CommonProxy implements ModInitializer {
 		return players.size();
 	}
 
+	public static boolean isMultipartEntity(Entity target) {
+		return target instanceof EnderDragon;
+	}
+
+	public static Entity wrapPartEntityParent(Entity target) {
+		if (target instanceof EnderDragonPart part) {
+			return part.parentMob;
+		}
+		return target;
+	}
+
+	public static int getPartEntityIndex(Entity entity) {
+		if (!(entity instanceof EnderDragonPart part)) {
+			return -1;
+		}
+		if (!(wrapPartEntityParent(entity) instanceof EnderDragon parent)) {
+			return -1;
+		}
+		EnderDragonPart[] parts = parent.getSubEntities();
+		return List.of(parts).indexOf(part);
+	}
+
+	public static Entity getPartEntity(Entity parent, int index) {
+		if (parent == null) {
+			return null;
+		}
+		if (index < 0) {
+			return parent;
+		}
+		if (parent instanceof EnderDragon dragon) {
+			EnderDragonPart[] parts = dragon.getSubEntities();
+			if (index < parts.length) {
+				return parts[index];
+			}
+		}
+		return parent;
+	}
+
 	@Override
 	public void onInitialize() {
 		ServerPlayNetworking.registerGlobalReceiver(Identifiers.PACKET_REQUEST_ENTITY, (server, player, handler, buf, responseSender) -> {
-			EntityAccessorImpl.handleRequest(buf, player, server::execute, tag -> {
-				FriendlyByteBuf data = PacketByteBufs.create();
-				data.writeNbt(tag);
-				responseSender.sendPacket(Identifiers.PACKET_RECEIVE_DATA, data);
+			EntityAccessorImpl.SyncData data = new EntityAccessorImpl.SyncData(buf);
+			EntityAccessorImpl.handleRequest(data, player, server::execute, tag -> {
+				FriendlyByteBuf buf1 = PacketByteBufs.create().writeNbt(tag);
+				responseSender.sendPacket(Identifiers.PACKET_RECEIVE_DATA, buf1);
 			});
 		});
 		ServerPlayNetworking.registerGlobalReceiver(Identifiers.PACKET_REQUEST_TILE, (server, player, handler, buf, responseSender) -> {
-			BlockAccessorImpl.handleRequest(buf, player, server::execute, tag -> {
-				FriendlyByteBuf data = PacketByteBufs.create();
-				data.writeNbt(tag);
-				responseSender.sendPacket(Identifiers.PACKET_RECEIVE_DATA, data);
+			BlockAccessorImpl.SyncData data = new BlockAccessorImpl.SyncData(buf);
+			BlockAccessorImpl.handleRequest(data, player, server::execute, tag -> {
+				FriendlyByteBuf buf1 = PacketByteBufs.create().writeNbt(tag);
+				responseSender.sendPacket(Identifiers.PACKET_RECEIVE_DATA, buf1);
 			});
 		});
 
